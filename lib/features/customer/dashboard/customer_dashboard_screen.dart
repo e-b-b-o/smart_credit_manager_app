@@ -280,7 +280,13 @@ class CustomerDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SCM Customer'),
+        title: const Text('My Dashboard'),
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.primaryGradient,
+          ),
+        ),
         actions: [
           Consumer(
             builder: (context, ref, child) {
@@ -357,9 +363,18 @@ class CustomerDashboardScreen extends ConsumerWidget {
 
                     String balanceLabel = 'My Outstanding Balance';
 
-                    return Card(
-                      color: AppColors.primary,
-                      margin: EdgeInsets.zero,
+                    return Container(
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withAlpha(50),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(24.0),
                         child: Column(
@@ -368,9 +383,7 @@ class CustomerDashboardScreen extends ConsumerWidget {
                               balanceLabel,
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(
-                                    color: AppColors.white.withValues(
-                                      alpha: 0.8,
-                                    ),
+                                    color: AppColors.white.withAlpha(200),
                                   ),
                             ),
                             const SizedBox(height: 8),
@@ -384,7 +397,7 @@ class CustomerDashboardScreen extends ConsumerWidget {
                                   style: Theme.of(context)
                                       .textTheme
                                       .headlineMedium
-                                      ?.copyWith(color: AppColors.white),
+                                      ?.copyWith(color: AppColors.white, fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ),
@@ -427,7 +440,7 @@ class CustomerDashboardScreen extends ConsumerWidget {
                     ),
                   ),
                   error: (e, st) => Card(
-                    color: Colors.red.shade50,
+                    color: AppColors.error.withAlpha(25),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Text(
@@ -441,36 +454,43 @@ class CustomerDashboardScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             // Actions
-            Text('Menu', style: Theme.of(context).textTheme.titleLarge),
+            Text('Menu', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             Card(
               elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: ListTile(
-                leading: const Icon(Icons.history, color: AppColors.primary),
-                title: const Text('Transaction History'),
-                trailing: const Icon(Icons.chevron_right),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: AppColors.primary.withAlpha(25), shape: BoxShape.circle),
+                  child: const Icon(Icons.history, color: AppColors.primary),
+                ),
+                title: const Text('Transaction History', style: TextStyle(fontWeight: FontWeight.bold)),
+                trailing: const Icon(Icons.chevron_right, color: AppColors.textLight),
                 onTap: () => context.push('/customer/history'),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Consumer(
               builder: (context, ref, child) {
                 final dashboardAsync = ref.watch(customerDashboardProvider);
-                final profile =
-                    dashboardAsync.value?['profile'] as CustomerModel?;
+                final profile = dashboardAsync.value?['profile'] as CustomerModel?;
                 return Card(
                   elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: ListTile(
-                    leading: const Icon(
-                      Icons.feedback,
-                      color: AppColors.primary,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: AppColors.warning.withAlpha(25), shape: BoxShape.circle),
+                      child: const Icon(Icons.feedback, color: AppColors.warning),
                     ),
-                    title: const Text('Submit Complaint / Request'),
-                    trailing: const Icon(Icons.chevron_right),
+                    title: const Text('Submit Complaint / Request', style: TextStyle(fontWeight: FontWeight.bold)),
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.textLight),
                     onTap: profile == null
                         ? null
-                        : () =>
-                              _showSubmitComplaintDialog(context, ref, profile),
+                        : () => _showSubmitComplaintDialog(context, ref, profile),
                   ),
                 );
               },

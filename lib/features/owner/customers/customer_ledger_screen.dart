@@ -367,15 +367,8 @@ class CustomerLedgerScreen extends ConsumerWidget {
                   },
                 ),
                 background: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        AppColors.primary,
-                        AppColors.primary.withValues(alpha: 0.8),
-                      ],
-                    ),
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.primaryGradient,
                   ),
                   child: Center(
                     child: Column(
@@ -470,20 +463,20 @@ class CustomerLedgerScreen extends ConsumerWidget {
                   IconData statusIcon;
                   switch (status) {
                     case PaymentStatus.overdue:
-                      statusColor = Colors.red;
+                      statusColor = AppColors.error;
                       statusIcon = Icons.warning_rounded;
                       break;
                     case PaymentStatus.paid:
-                      statusColor = Colors.green;
+                      statusColor = AppColors.success;
                       statusIcon = Icons.check_circle;
                       break;
                     case PaymentStatus.partial:
-                      statusColor = Colors.orange;
+                      statusColor = AppColors.warning;
                       statusIcon = Icons.timelapse;
                       break;
 
                     default:
-                      statusColor = Colors.grey;
+                      statusColor = AppColors.textLight;
                       statusIcon = Icons.radio_button_unchecked;
                   }
 
@@ -500,10 +493,10 @@ class CustomerLedgerScreen extends ConsumerWidget {
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.1),
+                              color: statusColor.withAlpha(25),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: statusColor.withValues(alpha: 0.5),
+                                color: statusColor.withAlpha(100),
                               ),
                             ),
                             child: Row(
@@ -543,7 +536,7 @@ class CustomerLedgerScreen extends ConsumerWidget {
                                   value: FinancialCalculator.formatCurrency(
                                     totalCredit,
                                   ),
-                                  color: Colors.red.shade700,
+                                  color: AppColors.text,
                                 ),
                                 _divider(),
                                 _SummaryCell(
@@ -551,7 +544,7 @@ class CustomerLedgerScreen extends ConsumerWidget {
                                   value: FinancialCalculator.formatCurrency(
                                     totalPaid,
                                   ),
-                                  color: Colors.green.shade700,
+                                  color: AppColors.success,
                                 ),
                                 _divider(),
                                 _SummaryCell(
@@ -560,8 +553,8 @@ class CustomerLedgerScreen extends ConsumerWidget {
                                     balance,
                                   ),
                                   color: balance > 0
-                                      ? Colors.orange.shade800
-                                      : Colors.green.shade700,
+                                      ? AppColors.error
+                                      : AppColors.success,
                                 ),
                               ],
                             ),
@@ -612,10 +605,11 @@ class CustomerLedgerScreen extends ConsumerWidget {
                             Expanded(
                               child: FilledButton.icon(
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: Colors.red.shade700,
+                                  backgroundColor: AppColors.error,
                                   padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
+                                    vertical: 14,
                                   ),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
                                 icon: const Icon(
                                   Icons.add_shopping_cart,
@@ -634,10 +628,11 @@ class CustomerLedgerScreen extends ConsumerWidget {
                             Expanded(
                               child: FilledButton.icon(
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: Colors.green.shade700,
+                                  backgroundColor: AppColors.success,
                                   padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
+                                    vertical: 14,
                                   ),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
                                 icon: const Icon(
                                   Icons.account_balance_wallet,
@@ -657,13 +652,14 @@ class CustomerLedgerScreen extends ConsumerWidget {
                         const SizedBox(height: 12),
                         FilledButton.icon(
                           style: FilledButton.styleFrom(
-                            backgroundColor: Colors.blue.shade700,
+                            backgroundColor: AppColors.primary,
                             padding: const EdgeInsets.symmetric(
-                              vertical: 12,
+                              vertical: 14,
                             ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           icon: const Icon(
-                            Icons.money_off,
+                            Icons.local_offer_outlined,
                             size: 20,
                           ),
                           label: const Text('Add Refund / Discount'),
@@ -732,8 +728,8 @@ class CustomerLedgerScreen extends ConsumerWidget {
                     final isCredit = tx.type == 'credit';
                     final isRefund = tx.type == 'refund';
                     final color = isCredit
-                        ? Colors.red.shade600
-                        : (isRefund ? Colors.blue.shade600 : Colors.green.shade600);
+                        ? AppColors.error
+                        : (isRefund ? AppColors.primary : AppColors.success);
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(
@@ -741,7 +737,8 @@ class CustomerLedgerScreen extends ConsumerWidget {
                         vertical: 6,
                       ),
                       child: Card(
-                        elevation: 1,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         child: InkWell(
                           onTap: () {
                             _showTransactionDialog(
@@ -762,16 +759,14 @@ class CustomerLedgerScreen extends ConsumerWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     CircleAvatar(
-                                      radius: 18,
-                                      backgroundColor: color.withValues(
-                                        alpha: 0.1,
-                                      ),
+                                      radius: 20,
+                                      backgroundColor: color.withAlpha(25),
                                       child: Icon(
                                         isCredit
-                                            ? Icons.arrow_upward
-                                            : (isRefund ? Icons.money_off : Icons.arrow_downward),
+                                            ? Icons.arrow_upward_rounded
+                                            : (isRefund ? Icons.local_offer_rounded : Icons.arrow_downward_rounded),
                                         color: color,
-                                        size: 18,
+                                        size: 20,
                                       ),
                                     ),
                                     const SizedBox(width: 12),

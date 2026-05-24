@@ -1,19 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../features/auth/controller/auth_controller.dart';
 import '../features/auth/screens/role_selection_screen.dart';
 import '../features/auth/screens/login_screen.dart';
+
 import '../features/owner/dashboard/owner_dashboard_screen.dart';
 import '../features/owner/customers/customer_list_screen.dart';
 import '../features/owner/customers/customer_ledger_screen.dart';
 import '../features/owner/transactions/transaction_screen.dart';
-import '../data/models/customer_model.dart';
 import '../features/owner/reports/reports_screen.dart';
+import '../features/owner/reports/aging_drilldown_screen.dart';
 import '../features/owner/complaints/complaints_screen.dart';
+import '../features/owner/profile/profile_screen.dart';
+import '../features/owner/profile/security_settings_screen.dart';
+
 import '../features/customer/dashboard/customer_dashboard_screen.dart';
 import '../features/customer/history/customer_history_screen.dart';
+import '../features/customer/notifications/customer_notifications_screen.dart';
+import '../features/customer/profile/customer_profile_screen.dart';
+
+import '../data/models/customer_model.dart';
 import '../core/services/reminder_service.dart';
+import '../shared/widgets/bottom_nav_scaffold.dart';
 
 class RouterNotifier extends ChangeNotifier {
   final Ref _ref;
@@ -45,12 +55,10 @@ class RouterNotifier extends ChangeNotifier {
       final isOwnerPath = state.matchedLocation.startsWith('/owner');
       final isCustomerPath = state.matchedLocation.startsWith('/customer');
 
-      // 1. If at entry screens (splash, login, role selection), go to their dashboard
       if (isSplash || isLoggingIn || isSelectingRole) {
         return actualRole == 'owner' ? '/owner' : '/customer';
       }
 
-      // 2. Strict enforcement: if on wrong path, redirect to correct dashboard
       if (actualRole == 'owner' && isCustomerPath) {
         return '/owner';
       }
@@ -67,10 +75,13 @@ final routerNotifierProvider = Provider<RouterNotifier>((ref) {
   return RouterNotifier(ref);
 });
 
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(routerNotifierProvider);
 
   return GoRouter(
+    navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
     refreshListenable: notifier,
     redirect: notifier.redirect,
@@ -89,46 +100,144 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/login',
         builder: (context, state) => const LoginScreen(),
       ),
-      // Owner Routes
-      GoRoute(
-        path: '/owner',
-        builder: (context, state) => const OwnerDashboardScreen(),
-        routes: [
-          GoRoute(
-            path: 'customers',
-            builder: (context, state) => const CustomerListScreen(),
+      
+      // Owner Shell Route
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return BottomNavScaffold(
+            navigationShell: navigationShell,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Dashboard'),
+              BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Customers'),
+              BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), activeIcon: Icon(Icons.bar_chart), label: 'Reports'),
+              BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+            ],
+          );
+        },
+        branches: [
+          StatefulShellBranch(
             routes: [
               GoRoute(
-                path: ':id',
-                builder: (context, state) {
-                  final customer = state.extra as CustomerModel;
-                  return CustomerLedgerScreen(customer: customer);
-                },
+                path: '/owner',
+                builder: (context, state) => const OwnerDashboardScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'transactions',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const TransactionScreen(),
+                  ),
+                  GoRoute(
+                    path: 'complaints',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const ComplaintsScreen(),
+                  ),
+                ],
               ),
             ],
           ),
-          GoRoute(
-            path: 'transactions',
-            builder: (context, state) => const TransactionScreen(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/owner/customers',
+                builder: (context, state) => const CustomerListScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) {
+                      final customer = state.extra as CustomerModel;
+                      return CustomerLedgerScreen(customer: customer);
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
-          GoRoute(
-            path: 'reports',
-            builder: (context, state) => const ReportsScreen(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/owner/reports',
+                builder: (context, state) => const ReportsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'aging/:category',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) {
+                      final category = state.pathParameters['category'] ?? '';
+                      final customerIds = (state.extra as List<dynamic>?)?.cast<String>() ?? [];
+                      return AgingDrilldownScreen(
+                        categoryLabel: Uri.decodeComponent(category),
+                        customerIds: customerIds,
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
-          GoRoute(
-            path: 'complaints',
-            builder: (context, state) => const ComplaintsScreen(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/owner/profile',
+                builder: (context, state) => const ProfileScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'security',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const SecuritySettingsScreen(),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
-      // Customer Routes
-      GoRoute(
-        path: '/customer',
-        builder: (context, state) => const CustomerDashboardScreen(),
-        routes: [
-          GoRoute(
-            path: 'history',
-            builder: (context, state) => const CustomerHistoryScreen(),
+
+      // Customer Shell Route
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return BottomNavScaffold(
+            navigationShell: navigationShell,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Dashboard'),
+              BottomNavigationBarItem(icon: Icon(Icons.history_outlined), activeIcon: Icon(Icons.history), label: 'History'),
+              BottomNavigationBarItem(icon: Icon(Icons.notifications_outlined), activeIcon: Icon(Icons.notifications), label: 'Alerts'),
+              BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+            ],
+          );
+        },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/customer',
+                builder: (context, state) => const CustomerDashboardScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/customer/history',
+                builder: (context, state) => const CustomerHistoryScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/customer/notifications',
+                builder: (context, state) => const CustomerNotificationsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/customer/profile',
+                builder: (context, state) => const CustomerProfileScreen(),
+              ),
+            ],
           ),
         ],
       ),

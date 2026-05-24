@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../data/models/transaction_model.dart';
 import '../../customer/dashboard/customer_dashboard_screen.dart';
 import '../../../shared/utils/financial_calculator.dart';
@@ -30,7 +31,13 @@ class CustomerHistoryScreen extends ConsumerWidget {
     final dashboardAsync = ref.watch(customerDashboardProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Transaction History')),
+      appBar: AppBar(
+        title: const Text('Transaction History'),
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+        ),
+      ),
       body: dashboardAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
@@ -59,16 +66,20 @@ class CustomerHistoryScreen extends ConsumerWidget {
                 final isCredit = tx.type == 'credit';
                 final isRefund = tx.type == 'refund';
                 final color = isCredit
-                    ? Colors.red.shade600
-                    : (isRefund ? Colors.blue.shade600 : Colors.green.shade600);
-                final icon = isRefund ? Icons.money_off : (isCredit ? Icons.arrow_upward : Icons.arrow_downward);
+                    ? AppColors.error
+                    : (isRefund ? AppColors.primary : AppColors.success);
+                final icon = isRefund ? Icons.local_offer_rounded : (isCredit ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded);
                 final titleText = isRefund ? 'Refund Issued' : (isCredit ? 'Credit' : 'Payment');
 
                 return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 5),
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     leading: CircleAvatar(
-                      backgroundColor: color.withValues(alpha: 0.12),
+                      radius: 20,
+                      backgroundColor: color.withAlpha(25),
                       child: Icon(
                         icon,
                         color: color,
@@ -79,7 +90,7 @@ class CustomerHistoryScreen extends ConsumerWidget {
                       tx.title?.isNotEmpty == true
                           ? tx.title!
                           : titleText,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +110,7 @@ class CustomerHistoryScreen extends ConsumerWidget {
                           const Text(
                             'OVERDUE',
                             style: TextStyle(
-                              color: Colors.red,
+                              color: AppColors.error,
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),

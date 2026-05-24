@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../auth/controller/auth_controller.dart';
 import '../../../data/services/supabase_service.dart';
 import '../../../shared/utils/financial_calculator.dart';
 
@@ -85,79 +84,17 @@ final dashboardStatsProvider = FutureProvider.autoDispose((ref) async {
 class OwnerDashboardScreen extends ConsumerWidget {
   const OwnerDashboardScreen({super.key});
 
-  void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
-        content: const Text(
-          'Are you absolutely sure you want to permanently delete your account? '
-          'This will delete all your customers, transactions, reports, and all related data. '
-          'This action CANNOT be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete Permanently', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      if (!context.mounted) return;
-      try {
-        await ref.read(supabaseServiceProvider).deleteOwnerAccount();
-        // The authControllerProvider listens to auth state changes, so it will redirect automatically upon signOut inside deleteOwnerAccount.
-      } catch (e) {
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('SCM Dashboard'),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'logout') {
-                ref.read(authControllerProvider.notifier).signOut();
-              } else if (value == 'delete_account') {
-                _showDeleteAccountDialog(context, ref);
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.black87),
-                    SizedBox(width: 8),
-                    Text('Logout'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'delete_account',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_forever, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Delete Account', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
-              ),
-            ],
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.primaryGradient,
           ),
-        ],
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
@@ -171,41 +108,35 @@ class OwnerDashboardScreen extends ConsumerWidget {
                 return statsAsync.when(
                   data: (stats) => Column(
                     children: [
-                      _buildSummaryCard(
+                      _buildGradientSummaryCard(
                         context,
                         'Total Outstanding',
                         FinancialCalculator.formatCurrency(
                           stats['totalOutstanding'] as double,
                         ),
-                        AppColors.primary,
-                        fullWidth: true,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       Row(
                         children: [
                           Expanded(
-                            child: _buildSummaryCard(
+                            child: _buildSecondarySummaryCard(
                               context,
                               'Debt Given',
                               FinancialCalculator.formatCurrency(
                                 stats['totalDebt'] as double,
                               ),
-                              Colors.blueGrey.shade800,
-                              isMini: true,
-                              fullWidth: true,
+                              AppColors.error,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 16),
                           Expanded(
-                            child: _buildSummaryCard(
+                            child: _buildSecondarySummaryCard(
                               context,
                               'Repayments',
                               FinancialCalculator.formatCurrency(
                                 stats['totalCollected'] as double,
                               ),
-                              Colors.green.shade800,
-                              isMini: true,
-                              fullWidth: true,
+                              AppColors.success,
                             ),
                           ),
                         ],
@@ -224,7 +155,7 @@ class OwnerDashboardScreen extends ConsumerWidget {
                       padding: const EdgeInsets.all(16.0),
                       child: Text(
                         'Error loading dashboard: $e',
-                        style: TextStyle(color: Colors.red),
+                        style: const TextStyle(color: Colors.red),
                       ),
                     ),
                   ),
@@ -241,58 +172,57 @@ class OwnerDashboardScreen extends ConsumerWidget {
                     final overdueCount = stats['overdueCustomersCount'] as int;
                     if (overdueCount == 0) return const SizedBox.shrink();
 
-                    return Card(
-                      color: Colors.red.shade50,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: Colors.red.shade200),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.red.shade200),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.warning_amber_rounded,
-                                  color: Colors.red.shade700,
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                color: Colors.red.shade700,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Overdue Summary',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      color: Colors.red.shade900,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildOverdueStat(
+                                context,
+                                'Customers',
+                                overdueCount.toString(),
+                              ),
+                              _buildOverdueStat(
+                                context,
+                                'Balance',
+                                FinancialCalculator.formatCurrency(
+                                  stats['overdueBalance'] as double,
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Overdue Summary',
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(
-                                        color: Colors.red.shade900,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildOverdueStat(
-                                  context,
-                                  'Customers',
-                                  overdueCount.toString(),
-                                ),
-                                _buildOverdueStat(
-                                  context,
-                                  'Balance',
-                                  FinancialCalculator.formatCurrency(
-                                    stats['overdueBalance'] as double,
-                                  ),
-                                ),
-                                _buildOverdueStat(
-                                  context,
-                                  'Invoices',
-                                  stats['overdueTransactionsCount'].toString(),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                              ),
+                              _buildOverdueStat(
+                                context,
+                                'Invoices',
+                                stats['overdueTransactionsCount'].toString(),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -301,57 +231,47 @@ class OwnerDashboardScreen extends ConsumerWidget {
                 );
               },
             ),
-            const SizedBox(height: 24),
             // Actions
             Text(
               'Quick Actions',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
-            Row(
+            const SizedBox(height: 16),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 1.5,
               children: [
-                Expanded(
-                  child: _buildActionCard(
-                    context,
-                    icon: Icons.people,
-                    title: 'Customers',
-                    onTap: () => context.push('/owner/customers'),
-                  ),
+                _buildActionCard(
+                  context,
+                  icon: Icons.people_alt_outlined,
+                  title: 'Customers',
+                  onTap: () => context.go('/owner/customers'),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildActionCard(
-                    context,
-                    icon: Icons.receipt_long,
-                    title: 'Transactions',
-                    onTap: () => context.push('/owner/transactions'),
-                  ),
+                _buildActionCard(
+                  context,
+                  icon: Icons.receipt_long_outlined,
+                  title: 'Transactions',
+                  onTap: () => context.push('/owner/transactions'),
+                ),
+                _buildActionCard(
+                  context,
+                  icon: Icons.bar_chart_outlined,
+                  title: 'Reports',
+                  onTap: () => context.go('/owner/reports'),
+                ),
+                _buildActionCard(
+                  context,
+                  icon: Icons.chat_bubble_outline,
+                  title: 'Complaints',
+                  onTap: () => context.push('/owner/complaints'),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionCard(
-                    context,
-                    icon: Icons.bar_chart,
-                    title: 'Reports',
-                    onTap: () => context.push('/owner/reports'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildActionCard(
-                    context,
-                    icon: Icons.chat,
-                    title: 'Complaints',
-                    onTap: () => context.push('/owner/complaints'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             // Recent Activity
             Consumer(
               builder: (context, ref, child) {
@@ -370,12 +290,15 @@ class OwnerDashboardScreen extends ConsumerWidget {
                           children: [
                             Text(
                               'Recent Activity',
-                              style: Theme.of(context).textTheme.titleLarge,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             TextButton(
                               onPressed: () =>
                                   context.push('/owner/transactions'),
-                              child: const Text('View All'),
+                              child: Text(
+                                'View All',
+                                style: TextStyle(color: AppColors.primary),
+                              ),
                             ),
                           ],
                         ),
@@ -385,25 +308,30 @@ class OwnerDashboardScreen extends ConsumerWidget {
                           final isCredit = transaction.type == 'credit';
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             child: ListTile(
                               leading: CircleAvatar(
                                 backgroundColor:
-                                    (isCredit ? Colors.red : Colors.green)
-                                        .withValues(alpha: 0.1),
+                                    (isCredit ? AppColors.error : AppColors.success)
+                                        .withAlpha(25),
                                 child: Icon(
                                   isCredit
                                       ? Icons.arrow_upward
                                       : Icons.arrow_downward,
-                                  color: isCredit ? Colors.red : Colors.green,
+                                  color: isCredit ? AppColors.error : AppColors.success,
                                   size: 16,
                                 ),
                               ),
                               title: Text(
                                 transaction.title ??
                                     (isCredit ? 'Credit' : 'Payment'),
+                                style: const TextStyle(fontWeight: FontWeight.w600),
                               ),
                               subtitle: Text(
                                 transaction.date.toString().split(' ')[0],
+                                style: const TextStyle(color: AppColors.textLight),
                               ),
                               trailing: Text(
                                 FinancialCalculator.formatCurrency(
@@ -411,7 +339,8 @@ class OwnerDashboardScreen extends ConsumerWidget {
                                 ),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isCredit ? Colors.red : Colors.green,
+                                  fontSize: 16,
+                                  color: isCredit ? AppColors.error : AppColors.success,
                                 ),
                               ),
                             ),
@@ -431,49 +360,81 @@ class OwnerDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(
-    BuildContext context,
-    String label,
-    String value,
-    Color color, {
-    bool isMini = false,
-    bool fullWidth = false,
-  }) {
-    return Card(
-      color: color,
-      margin: fullWidth
-          ? EdgeInsets.zero
-          : const EdgeInsets.symmetric(vertical: 4),
-      child: Padding(
-        padding: EdgeInsets.all(isMini ? 16.0 : 24.0),
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.white.withValues(alpha: 0.8),
-                  ),
-            ),
-            const SizedBox(height: 4),
-            SizedBox(
-              width: double.infinity,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.center,
-                child: Text(
-                  value,
-                  style: (isMini
-                          ? Theme.of(context).textTheme.titleLarge
-                          : Theme.of(context).textTheme.headlineMedium)
-                      ?.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+  Widget _buildGradientSummaryCard(BuildContext context, String label, String value) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withAlpha(50),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppColors.white.withAlpha(200),
                 ),
+          ),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                color: AppColors.white,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecondarySummaryCard(BuildContext context, String label, String value, Color textColor) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.text.withAlpha(10),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textLight,
+                ),
+          ),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -484,7 +445,7 @@ class OwnerDashboardScreen extends ConsumerWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.red.shade900.withValues(alpha: 0.7),
+            color: Colors.red.shade900.withAlpha(180),
             fontSize: 12,
           ),
         ),
@@ -507,26 +468,40 @@ class OwnerDashboardScreen extends ConsumerWidget {
     required String title,
     required VoidCallback onTap,
   }) {
-    return Card(
-      elevation: 2,
-      margin: EdgeInsets.zero,
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.text.withAlpha(10),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 32, color: AppColors.primary),
-              const SizedBox(height: 8),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withAlpha(15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 28, color: AppColors.primary),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
               ),
             ],
